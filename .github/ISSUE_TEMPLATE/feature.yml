@@ -1,0 +1,19 @@
+name: Sugestão
+description: Uma ideia ou melhoria
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema resolve
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposta
+  - type: textarea
+    id: security
+    attributes:
+      label: Impacto em segurança
+      description: Mexe em autenticação, isolamento, egress, protocolo ou dados guardados?

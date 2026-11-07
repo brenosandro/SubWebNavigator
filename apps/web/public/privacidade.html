@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Política de Privacidade · SubWebNavigator</title>
+<meta name="description" content="Como o SubWebNavigator trata dados pessoais: o que guardamos, o que nunca lemos, cookies, segurança e seus direitos pela LGPD." />
+<link rel="icon" type="image/png" href="/icon-datatoms-white.png" />
+<style>
+  :root { color-scheme: light dark; --bg:#f8fafc; --card:#fff; --ink:#1e293b; --soft:#64748b; --line:#e2e8f0; --accent:#0284c7; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f0f0f; --card:#161616; --ink:#e2e8f0; --soft:#94a3b8; --line:#282828; --accent:#38bdf8; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  header { border-bottom:1px solid var(--line); background:var(--card); }
+  .bar { max-width:820px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .brand { font-weight:700; font-size:14px; text-decoration:none; color:var(--ink); }
+  .brand small { display:block; font-weight:600; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--soft); }
+  .bar a.back { font-size:13px; font-weight:600; color:var(--soft); text-decoration:none; }
+  .bar a.back:hover { color:var(--ink); }
+  main { max-width:820px; margin:0 auto; padding:28px 20px 56px; }
+  nav { display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+  nav a { font-size:13px; font-weight:600; text-decoration:none; padding:7px 14px; border-radius:9px; color:var(--soft); }
+  nav a[aria-current] { background:var(--ink); color:var(--bg); }
+  article { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:30px; }
+  @media (max-width:560px) { article { padding:20px; } }
+  h1 { font-size:26px; margin:0 0 4px; letter-spacing:-.02em; }
+  .lead { margin:0 0 26px; color:var(--soft); font-size:14px; }
+  h2 { font-size:16px; margin:26px 0 8px; }
+  h2 span { color:var(--soft); font-weight:600; margin-right:6px; }
+  p, li { color:var(--ink); font-size:14px; }
+  ul { padding-left:20px; }
+  li { margin:4px 0; }
+  a { color:var(--accent); }
+  strong { font-weight:700; }
+  footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line); font-size:12.5px; color:var(--soft); }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/">SubWebNavigator<small>Navegação remota privada</small></a>
+    <a class="back" href="/login">← Voltar ao login</a>
+  </div>
+</header>
+
+<main>
+  <nav>
+    <a href="/">Início</a>
+    <a href="/termos">Termos de Uso</a>
+    <a href="/privacidade" aria-current="page">Política de Privacidade</a>
+  </nav>
+
+  <article>
+    <h1>Política de Privacidade</h1>
+    <p class="lead">Como o SubWebNavigator trata dados pessoais.</p>
+
+    <h2><span>1.</span>Quem trata os dados</h2>
+    <p>O SubWebNavigator é instalado e operado pelo próprio titular, num servidor sob o controle dele (self-hosted). O titular é o <strong>controlador</strong> dos dados da sua instância, nos termos da Lei Geral de Proteção de Dados (Lei 13.709/2018). A Datatoms desenvolve o software; quando presta suporte ou hospedagem a pedido do titular, atua como <strong>operadora</strong>, apenas conforme as instruções dele.</p>
+
+    <h2><span>2.</span>Que dados guardamos</h2>
+    <ul>
+      <li><strong>Identidade Google do titular:</strong> identificador da conta (sub, armazenado de forma pseudonimizada), e-mail, nome e foto de perfil fornecidos pelo Google no login. Não recebemos nem guardamos a senha do Google.</li>
+      <li><strong>Chaves de segurança (WebAuthn):</strong> somente a <strong>chave pública</strong>, o identificador da credencial, o contador de uso e o nome que você deu à chave. A chave privada nunca sai do dispositivo físico.</li>
+      <li><strong>Metadados de perfis:</strong> nome do perfil, endereço inicial, grupo, cor, estado e data de último uso.</li>
+      <li><strong>Sessões de acesso:</strong> data de criação e última atividade, descrição aproximada do navegador e endereço IP mascarado — para listar dispositivos e permitir revogá-los.</li>
+      <li><strong>Auditoria:</strong> eventos como login, bloqueio, desbloqueio, cadastro de chave, alteração de política e criação ou exclusão de perfis, com data, resultado e IP mascarado.</li>
+      <li><strong>Preferências de aparência:</strong> tema claro/escuro, guardado apenas no seu navegador.</li>
+    </ul>
+
+    <h2><span>3.</span>O que nunca lemos</h2>
+    <p>Os sites de terceiros abertos nos perfis rodam no servidor, num navegador isolado por perfil. Os dados de sessão desses sites (cookies, armazenamento local, bancos de dados do navegador) ficam no servidor, protegidos em repouso, e <strong>não são lidos, indexados, analisados nem exportados</strong> pelo SubWebNavigator. Conteúdo de mensagens, conversas, telas, QR codes de login e teclas digitadas <strong>não entram</strong> em registros, auditoria ou métricas. A busca do produto considera apenas os metadados dos perfis.</p>
+    <p>Enquanto um perfil está aberto, esses dados estão em uso na memória do servidor para que a página funcione; não há criptografia ponta a ponta entre você e o site de terceiro.</p>
+
+    <h2><span>4.</span>Para que usamos</h2>
+    <ul>
+      <li>Autenticar o titular (Google + chave de segurança) e manter a sessão segura;</li>
+      <li>Aplicar bloqueio por inatividade, tempo máximo de controle e revogação de dispositivos;</li>
+      <li>Organizar e abrir os perfis cadastrados;</li>
+      <li>Registrar trilha de auditoria para detectar acessos indevidos.</li>
+    </ul>
+    <p>As bases legais são a execução do serviço solicitado pelo titular e o legítimo interesse em manter a segurança da conta.</p>
+
+    <h2><span>5.</span>Cookies</h2>
+    <p>Usamos apenas cookies próprios <strong>estritamente necessários</strong>: um cookie de sessão HttpOnly (inacessível a scripts), restrito ao próprio domínio, e um cookie temporário que protege o retorno do login com Google. Não usamos cookies de publicidade, rastreamento ou análise de terceiros. O computador que você usa nunca recebe cookies dos sites abertos nos perfis.</p>
+
+    <h2><span>6.</span>Compartilhamento</h2>
+    <p>Não vendemos, alugamos nem compartilhamos dados pessoais. O único terceiro envolvido no acesso é o Google, durante o login, conforme a política de privacidade dele. Os sites abertos nos perfis recebem o que você mesmo enviar a eles ao usá-los, como em qualquer navegador.</p>
+    <p>O SubWebNavigator não é afiliado a WhatsApp, Meta, Telegram, Instagram ou outros sites que possam ser abertos nele.</p>
+
+    <h2><span>7.</span>Segurança</h2>
+    <ul>
+      <li>Acesso por conta Google restrita ao titular e chave de segurança física obrigatória;</li>
+      <li>Sessão com bloqueio automático, tempo máximo e confirmação por chave para ações sensíveis;</li>
+      <li>Perfis isolados entre si e armazenados de forma criptografada em repouso;</li>
+      <li>Bloqueio de acesso a redes internas a partir do navegador remoto;</li>
+      <li>Registros sem conteúdo e com IP mascarado.</li>
+    </ul>
+    <p>Riscos que não conseguimos eliminar: um computador visitante comprometido (malware, captura de tela ou de teclado) pode ver o que aparece na tela. Evite máquinas compartilhadas e bloqueie a sessão ao se afastar.</p>
+
+    <h2><span>8.</span>Retenção</h2>
+    <p>Metadados de perfis ficam guardados enquanto o perfil existir. Ao excluir um perfil, os dados de sessão dele no servidor são destruídos; cópias de segurança seguem a retenção configurada pelo titular. Registros de auditoria e sessões encerradas são mantidos pelo prazo definido na instância para fins de segurança.</p>
+
+    <h2><span>9.</span>Seus direitos</h2>
+    <p>Pela LGPD, você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade e eliminação dos seus dados, além de informações sobre compartilhamento. Como o titular controla a própria instância, a maior parte desses direitos pode ser exercida diretamente nela (excluindo perfis, chaves e sessões). Para apoio, fale com o operador desta instância (quem a instalou).</p>
+
+    <h2><span>10.</span>Alterações desta política</h2>
+    <p>Esta política pode ser atualizada junto com novas versões do produto. A data no rodapé desta página é sempre a da versão vigente.</p>
+
+    <footer>Última atualização: 6 de novembro de 2026</footer>
+  </article>
+</main>
+</body>
+</html>

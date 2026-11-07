@@ -1,0 +1,32 @@
+name: Bug
+description: Algo não funciona como esperado
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "**Vulnerabilidades não vão aqui:** use Security → Report a vulnerability. Não cole tokens, e-mails, domínios ou capturas com dados pessoais."
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: E o que você esperava.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir
+      placeholder: "1. ...\n2. ..."
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Ambiente
+      placeholder: "ex.: Ubuntu 24.04, Docker 27, commit abc1234"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs relevantes
+      description: Revise e remova qualquer dado sensível antes de colar.
+      render: text

@@ -1,0 +1,75 @@
+# SubWebNavigator — infraestrutura LOCAL de desenvolvimento.
+# Projeto e redes próprios: não compartilha volumes nem redes com outros stacks do host.
+# Portas só em 127.0.0.1 (nunca 0.0.0.0).
+#
+# Redes:
+#   data     Postgres (só a API acessa)
+#   workers  INTERNAL: os workers (Chromium) não têm rota para fora. Saída só pelo
+#            egress proxy; entrada só pelo relay. Workers são criados pelo controller.
+#   egress   saída para a internet (só o egress proxy)
+#   control  entrada do gateway da API no relay
+name: subwebnavigator
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-subweb_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-subweb}
+    ports:
+      - "127.0.0.1:5446:5432"
+    volumes:
+      - subweb_pg:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  egress:
+    build: { context: ., dockerfile: infra/docker/Dockerfile.edge }
+    image: subweb-edge:dev
+    command: ["node", "dist/main-egress.js"]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      workers:
+        aliases: [swn-egress]
+      egress: {}
+
+  relay:
+    image: subweb-edge:dev
+    command: ["node", "dist/main-relay.js"]
+    depends_on: [egress]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      WORKERS_SUBNET: 10.213.240.0/24
+    ports:
+      - "127.0.0.1:7460:7460"
+    networks: [workers, control]
+
+volumes:
+  subweb_pg:
+
+networks:
+  data:
+    name: subwebnavigator_data
+  workers:
+    name: subweb_workers
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.213.240.0/24
+  egress:
+    name: subwebnavigator_egress
+  control:
+    name: subwebnavigator_control

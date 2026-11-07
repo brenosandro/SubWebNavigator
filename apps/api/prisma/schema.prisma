@@ -1,0 +1,163 @@
+// SubWebNavigator — somente METADADOS. Nada de cookies, storage ou conteúdo de
+// sites de terceiros aqui: isso vive no vault cifrado do worker (fase P3).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Titular único do MVP. A identidade é o `sub` do Google (hash), não o e-mail.
+model Owner {
+  id                  String   @id @default(uuid()) @db.Uuid
+  externalSubjectHash String   @unique
+  emailEncrypted      String
+  name                String
+  avatarUrl           String?
+  createdAt           DateTime @default(now())
+  lastSeenAt          DateTime @default(now())
+
+  credentials     WebAuthnCredential[]
+  sessions        AuthSession[]
+  profiles        BrowserProfile[]
+  policy          SecurityPolicy?
+  enrollmentCodes EnrollmentCode[]
+  auditEvents     AuditEvent[]
+}
+
+/// Chave de segurança WebAuthn. Guardamos só a chave PÚBLICA.
+model WebAuthnCredential {
+  id           String    @id @default(uuid()) @db.Uuid
+  ownerId      String    @db.Uuid
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      BigInt    @default(0)
+  transports   String[]
+  deviceType   String
+  backedUp     Boolean
+  aaguid       String?
+  label        String
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  revokedAt    DateTime?
+
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+/// Sessão do dispositivo visitante (ViewerSession). O cookie leva um
+/// segredo aleatório; aqui fica só o hash.
+model AuthSession {
+  id                String    @id @default(uuid()) @db.Uuid
+  ownerId           String    @db.Uuid
+  tokenHash         String    @unique
+  stage             String // MFA_PENDING | ACTIVE | LOCKED
+  lockReason        String? // manual | idle | absolute
+  deviceLabel       String
+  ipMasked          String?
+  createdAt         DateTime  @default(now())
+  lastSeenAt        DateTime  @default(now())
+  lastHumanInputAt  DateTime  @default(now())
+  controlExpiresAt  DateTime?
+  sessionExpiresAt  DateTime
+  stepUpAt          DateTime?
+  challenge         String?
+  challengePurpose  String?
+  challengeExpiresAt DateTime?
+  revokedAt         DateTime?
+
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+/// Código de uso único para cadastrar a PRIMEIRA chave (gerado pela CLI no servidor).
+model EnrollmentCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  ownerId   String?   @db.Uuid
+  codeHash  String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  owner Owner? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model BrowserProfile {
+  id                 String    @id @default(uuid()) @db.Uuid
+  ownerId            String    @db.Uuid
+  title              String
+  provider           String // whatsapp | telegram | instagram | custom
+  normalizedStartUrl String
+  host               String
+  group              String
+  colorToken         String
+  iconKey            String?
+  status             String    @default("STOPPED")
+  pinned             Boolean   @default(false)
+  autoStart          Boolean   @default(false)
+  orderIndex         Int       @default(0)
+  encryptedVaultRef  String?
+  lastUsedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  owner   Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  runtime Runtime?
+
+  @@index([ownerId, deletedAt])
+}
+
+/// Runtime remoto do perfil + control lease exclusivo (TH-17).
+/// `fencingToken` só cresce: o worker recusa conexão com token menor (S-012/S-035).
+model Runtime {
+  id             String    @id @default(uuid()) @db.Uuid
+  profileId      String    @unique @db.Uuid
+  state          String    @default("STOPPED")
+  fencingToken   Int       @default(0)
+  leaseId        String?
+  leaseSessionId String?   @db.Uuid
+  leaseAt        DateTime?
+  startedAt      DateTime?
+  lastError      String?
+  updatedAt      DateTime  @updatedAt
+
+  profile BrowserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model SecurityPolicy {
+  id                     String   @id @default(uuid()) @db.Uuid
+  ownerId                String   @unique @db.Uuid
+  idleMinutes            Int      @default(5)
+  absoluteMinutes        Int      @default(30)
+  lockOnBlur             Boolean  @default(false)
+  suspendInactiveMinutes Int      @default(15)
+  allowClipboard         Boolean  @default(false)
+  allowUpload            Boolean  @default(false)
+  allowDownload          Boolean  @default(false)
+  updatedAt              DateTime @updatedAt
+
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+/// Trilha de auditoria: metadados redigidos, NUNCA conteúdo de sites.
+model AuditEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  ownerId         String?  @db.Uuid
+  eventCode       String
+  result          String // SUCCESS | DENIED | FAILURE
+  targetProfileId String?  @db.Uuid
+  ipMasked        String?
+  traceId         String
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+
+  owner Owner? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, createdAt])
+}

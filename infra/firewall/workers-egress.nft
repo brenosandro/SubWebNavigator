@@ -1,0 +1,25 @@
+# SubWebNavigator — bloqueio da rede dos workers no HOST Linux (produção).
+#
+# A rede Docker `subweb_workers` é `internal` (sem rota para a internet), mas o
+# IP do bridge (gateway, ex.: 10.213.240.1) pertence ao próprio host: qualquer
+# serviço do host escutando em 0.0.0.0 ficaria alcançável por um worker
+# comprometido (outros apps, orquestrador, Postgres, SSH...). Esta regra fecha esse caminho.
+#
+# Uso:  sudo nft -f infra/firewall/workers-egress.nft
+# Teste (de dentro de um worker): conexão a 10.213.240.1:<qualquer porta> deve dar timeout.
+
+table inet subweb_workers {
+  chain input {
+    type filter hook input priority filter - 5; policy accept;
+    # Nada que venha da rede dos workers entra no host.
+    ip saddr 10.213.240.0/24 counter drop
+  }
+  chain forward {
+    type filter hook forward priority filter - 5; policy accept;
+    # Com br_netfilter (padrão do Docker) o tráfego DENTRO do bridge também passa
+    # aqui: worker ↔ egress proxy/relay precisa continuar permitido.
+    ip saddr 10.213.240.0/24 ip daddr 10.213.240.0/24 accept
+    # Qualquer tentativa de atravessar para outra rede é descartada.
+    ip saddr 10.213.240.0/24 counter drop
+  }
+}

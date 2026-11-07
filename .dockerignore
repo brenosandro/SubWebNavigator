@@ -1,0 +1,8 @@
+# Contexto de build enxuto e sem segredos.
+.git
+.env
+.env.*
+**/node_modules
+**/dist
+**/*.log
+docs

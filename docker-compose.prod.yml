@@ -1,0 +1,165 @@
+# SubWebNavigator — PRODUÇÃO (Docker Compose: Coolify, Portainer ou `docker compose` puro). Build context: raiz.
+# Passo a passo: docs/deploy.md
+#
+# Nenhuma porta publicada: a única entrada é o túnel dedicado da Cloudflare
+# (`subwebnavigator`), protegido pelo Access (Google + chave física).
+#
+# Redes (cada uma só com quem precisa):
+#   edge     cloudflared ↔ web                     (saída p/ internet: túnel)
+#   app      web ↔ api                             (api sai p/ Google/Cloudflare JWKS)
+#   data     api ↔ postgres                        INTERNAL
+#   control  api ↔ controller ↔ relay              INTERNAL
+#   workers  workers (Chromium) ↔ egress ↔ relay   INTERNAL, sub-rede fixa
+#   egress   saída do egress proxy para a internet
+#
+# Os workers NÃO estão aqui: o controller cria um container por perfil ativo,
+# com flags fixas (apps/controller/src/docker.ts), na rede `subweb_workers`.
+name: subwebnavigator
+
+x-hardening: &hardening
+  restart: unless-stopped
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  postgres:
+    # Sem o bloco de hardening: o entrypoint do Postgres precisa de chown/setuid
+    # na inicialização. Fica isolado na rede `data` (internal).
+    image: postgres:16-alpine
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-subweb_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-subweb}
+    volumes:
+      - subweb_pg:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    <<: *hardening
+    build: { context: ., dockerfile: infra/docker/Dockerfile.api }
+    read_only: true
+    tmpfs: ["/tmp:size=64m"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      controller: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-subweb_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-subweb}
+      APP_ORIGIN: ${APP_ORIGIN:?defina APP_ORIGIN}
+      TRUST_PROXY: "2"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:?}
+      OWNER_GOOGLE_EMAILS: ${OWNER_GOOGLE_EMAILS:?}
+      OWNER_GOOGLE_SUBS: ${OWNER_GOOGLE_SUBS:-}
+      OAUTH_STATE_SECRET: ${OAUTH_STATE_SECRET:?}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:?}
+      WEBAUTHN_RP_NAME: SubWebNavigator
+      WEBAUTHN_RP_ORIGIN: ${APP_ORIGIN:?defina APP_ORIGIN}
+      ENFORCE_HARDWARE_WEBAUTHN: "true"
+      ENFORCE_ACCESS_JWT: "true"
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:?}
+      CF_ACCESS_AUDIENCE: ${CF_ACCESS_AUDIENCE:?}
+      CONTROLLER_URL: http://controller:3470
+      CONTROLLER_SECRET: ${CONTROLLER_SECRET:?}
+      RELAY_URL: ws://relay:7460
+      DEFAULT_IDLE_MINUTES: ${DEFAULT_IDLE_MINUTES:-5}
+      MAX_IDLE_MINUTES: ${MAX_IDLE_MINUTES:-30}
+      DEFAULT_VIEWER_ABSOLUTE_MINUTES: ${DEFAULT_VIEWER_ABSOLUTE_MINUTES:-30}
+      MAX_VIEWER_ABSOLUTE_MINUTES: ${MAX_VIEWER_ABSOLUTE_MINUTES:-60}
+    networks: [app, data, control]
+
+  web:
+    <<: *hardening
+    build: { context: ., dockerfile: infra/docker/Dockerfile.web }
+    depends_on: [api]
+    networks: [edge, app]
+
+  controller:
+    <<: *hardening
+    build: { context: ., dockerfile: infra/docker/Dockerfile.controller }
+    read_only: true
+    tmpfs: ["/tmp:size=16m"]
+    depends_on: [egress, relay, worker-image]
+    environment:
+      CONTROLLER_SECRET: ${CONTROLLER_SECRET:?}
+      WORKER_IMAGE: subweb-worker:prod
+      MAX_SIMULTANEOUS_WORKERS: ${MAX_SIMULTANEOUS_WORKERS:-3}
+      WORKER_MEMORY_LIMIT_MB: ${WORKER_MEMORY_LIMIT_MB:-1536}
+      WORKER_CPU_LIMIT: ${WORKER_CPU_LIMIT:-1.5}
+      TZ: America/Sao_Paulo
+      DOCKER_CONFIG: /tmp/.docker
+    volumes:
+      # ÚNICO serviço com o socket do Docker (API e web nunca).
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [control]
+
+  # Só existe para construir a imagem do worker no deploy. Fica ociosa, sem rede.
+  worker-image:
+    <<: *hardening
+    build: { context: ., dockerfile: infra/docker/Dockerfile.worker }
+    image: subweb-worker:prod
+    entrypoint: ["node", "-e", "setInterval(() => {}, 1 << 30)"]
+    read_only: true
+    # Rede própria e interna (não `network_mode: none`: o Coolify injeta a rede
+    # dele em todos os serviços e os dois não podem coexistir).
+    networks: [idle]
+    healthcheck:
+      disable: true
+
+  egress:
+    <<: *hardening
+    build: { context: ., dockerfile: infra/docker/Dockerfile.edge }
+    command: ["node", "dist/main-egress.js"]
+    read_only: true
+    networks:
+      workers:
+        aliases: [swn-egress]
+      egress: {}
+
+  relay:
+    <<: *hardening
+    build: { context: ., dockerfile: infra/docker/Dockerfile.edge }
+    command: ["node", "dist/main-relay.js"]
+    read_only: true
+    environment:
+      WORKERS_SUBNET: 10.213.240.0/24
+    networks: [workers, control]
+
+  cloudflared:
+    <<: *hardening
+    image: cloudflare/cloudflared:2026.10.1
+    command: ["tunnel", "--no-autoupdate", "run"]
+    read_only: true
+    depends_on: [web]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?}
+    networks: [edge]
+
+volumes:
+  subweb_pg:
+
+networks:
+  edge: {}
+  app: {}
+  data:
+    internal: true
+  control:
+    internal: true
+  egress: {}
+  idle:
+    internal: true
+  workers:
+    name: subweb_workers
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.213.240.0/24

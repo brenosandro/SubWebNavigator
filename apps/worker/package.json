@@ -1,0 +1,24 @@
+{
+  "name": "@subweb/worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agente do worker: Chromium isolado (CDP por pipe) + protocolo limitado por WebSocket",
+  "main": "dist/agent.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@subweb/protocol": "0.1.0",
+    "ws": "^8.18.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SubWebNavigator · API (Fastify + Prisma + gateway WSS). Build context: raiz.
+# Usuário não-root, sem segredos na imagem (tudo por variável de ambiente).
+# Aplica as migrations no start (idempotente) e sobe o servidor.
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+COPY package.json package-lock.json ./
+COPY packages/protocol/package.json packages/protocol/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY apps/edge/package.json apps/edge/package.json
+COPY apps/controller/package.json apps/controller/package.json
+RUN npm ci --no-audit --no-fund --ignore-scripts -w @subweb/api -w @subweb/protocol
+COPY packages/protocol packages/protocol
+RUN npm run build -w @subweb/protocol
+COPY apps/api apps/api
+RUN cd apps/api && npx prisma generate && npm run build
+
+FROM node:22-bookworm-slim AS runtime
+ENV NODE_ENV=production API_HOST=0.0.0.0 API_PORT=3460 HOME=/tmp
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl curl && rm -rf /var/lib/apt/lists/*
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/protocol/package.json ./packages/protocol/package.json
+COPY --from=build /app/packages/protocol/dist ./packages/protocol/dist
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+USER node
+WORKDIR /app/apps/api
+EXPOSE 3460
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 CMD curl -fsS http://127.0.0.1:3460/api/health/live || exit 1
+CMD ["sh", "-c", "node /app/node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma && exec node dist/server.js"]

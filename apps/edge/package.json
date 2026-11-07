@@ -1,0 +1,22 @@
+{
+  "name": "@subweb/edge",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Borda da rede dos workers: proxy de egress (saída) e relay (entrada do gateway)",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "ipaddr.js": "^2.2.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

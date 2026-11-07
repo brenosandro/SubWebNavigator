@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!env.template
+*.log
+.DS_Store
+Thumbs.db
+storage/
+tmp/
+coverage/
+.vite/
+*.tsbuildinfo
+# Evidências com dados reais nunca vão para o repositório.
+docs/reports/**/evidence/private/
+.claude/
