@@ -28,7 +28,7 @@ Cookies e sessões dos sites, armazenamento do Chromium (volumes `swn-profile-*`
 | TH-08 | Vazamento de conteúdo | screenshots, logs de entrada | sem gravação, sem log de entrada, auditoria sem conteúdo |
 | TH-09 | Captura no computador visitante | malware, gravador de tela | aviso explícito + bloqueio rápido. **Risco residual: não dá para eliminar remotamente** |
 | TH-10 | Exfiltração por transferência | clipboard, arquivos | desligados por padrão |
-| TH-11 | Cadeia de suprimentos | dependência ou imagem maliciosa | lockfile, imagens base oficiais, Dependabot, revisão dos Dockerfiles |
+| TH-11 | Cadeia de suprimentos | dependência ou imagem maliciosa | lockfile, imagens base oficiais, alertas de segurança do Dependabot, revisão dos Dockerfiles |
 | TH-12 | Host comprometido | root lê a memória | hardening do host, volume cifrado. **Não há E2EE: o servidor vê o conteúdo** |
 | TH-13 | Bypass do bloqueio | WSS aberto continua após expirar | o gateway fecha o stream na hora + revalidação periódica |
 | TH-15 | XSS na UI | título, URL ou nome de perfil | React escapa, CSP estrita no nginx, nada do site entra no DOM |
@@ -90,7 +90,7 @@ Flags fixas, aplicadas pelo controller ([`apps/controller/src/docker.ts`](../app
 | S-036 | cache ou voltar após bloqueio | nada sensível | ⏳ |
 | S-037 | troca da chave de cifra | recifragem íntegra | ⏳ |
 | S-038 | restore sem a chave | falha segura | ⏳ |
-| S-039 | dependências com CVE crítica | gate falha | ⚠️ Dependabot ativo; sem gate no CI |
+| S-039 | dependências com CVE crítica | gate falha | ⚠️ alertas de segurança do Dependabot ativos; sem gate no CI |
 | S-040 | `/api` e WSS sem Access | 401/403 | ✅ `integration.test.ts`, `stream.integration.test.ts` · 🔎 302 no servidor real |
 | S-041 | session fixation | cookie girado após autenticar | ✅ `integration.test.ts` |
 | S-042 | replay de challenge no desbloqueio | expira, sem replay | ✅ `integration.test.ts` |
